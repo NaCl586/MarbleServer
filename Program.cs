@@ -101,6 +101,12 @@ builder.Services.AddScoped<LeaderboardService>();
 
 var app = builder.Build();
 
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<MarbleDbContext>();
+    db.Database.Migrate();
+}
+
 // Swagger
 if (app.Environment.IsDevelopment())
 {
