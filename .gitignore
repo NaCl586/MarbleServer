@@ -404,3 +404,4 @@ appsettings.json
 marble.db
 marble.db-shm
 marble.db-wal
+*.urec
