@@ -10,13 +10,16 @@ namespace MarbleServer.Services
     {
         private readonly MarbleDbContext _db;
         private readonly JwtService _jwtService;
+        private readonly IConfiguration _configuration;
 
         public PlayerService(
             MarbleDbContext db,
-            JwtService jwtService)
+            JwtService jwtService,
+            IConfiguration configuration)
         {
             _db = db;
             _jwtService = jwtService;
+            _configuration = configuration;
         }
 
         public async Task RegisterAsync(RegisterRequest request)
@@ -48,6 +51,23 @@ namespace MarbleServer.Services
         public async Task<string> LoginAsync(
             LoginRequest request)
         {
+            // Check game version before authentication
+            string latestVersion =
+                _configuration["GameVersion:Latest"]
+                ?? string.Empty;
+
+            if (!string.Equals(
+                    request.GameVersion,
+                    latestVersion,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                throw new UnauthorizedException(
+                    $"This version of the game is outdated. " +
+                    $"Please update to version {latestVersion}, " +
+                    $"available to download from https://github.com/NaCl586/marble-blast-platinum-unity/releases/");
+            }
+
+            // Normal login
             Player? player =
                 await _db.Players
                     .FirstOrDefaultAsync(p =>

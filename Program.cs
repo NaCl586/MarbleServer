@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using Microsoft.AspNetCore.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -88,6 +89,26 @@ builder.Services
                     new SymmetricSecurityKey(
                         Encoding.UTF8.GetBytes(jwtSettings.Secret))
             };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                string? accessToken =
+                    context.Request.Query["access_token"];
+
+                PathString path =
+                    context.HttpContext.Request.Path;
+
+                if (!string.IsNullOrEmpty(accessToken) &&
+                    path.StartsWithSegments("/hubs/chat"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
@@ -98,6 +119,11 @@ builder.Services.AddScoped<PlayerService>();
 builder.Services.AddScoped<ReplayService>();
 builder.Services.AddScoped<JwtService>();
 builder.Services.AddScoped<LeaderboardService>();
+builder.Services.AddScoped<IntegrityService>();
+
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<PresenceService>();
+builder.Services.AddSingleton<ChatMessageHistoryService>();
 
 var app = builder.Build();
 
@@ -124,6 +150,8 @@ app.UseAuthorization();
 
 // Exception Middleware
 app.UseMiddleware<ExceptionMiddleware>();
+
+app.MapHub<ChatHub>("/hubs/chat");
 
 // Controllers
 app.MapControllers();

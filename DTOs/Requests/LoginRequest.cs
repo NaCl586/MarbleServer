@@ -9,5 +9,8 @@ namespace MarbleServer.DTOs.Requests
 
         [Required]
         public string Password { get; set; } = string.Empty;
+
+        [Required]
+        public string GameVersion { get; set; } = string.Empty;
     }
 }
