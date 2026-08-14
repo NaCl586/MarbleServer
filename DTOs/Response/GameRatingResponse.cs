@@ -1,11 +1,13 @@
 ﻿namespace MarbleServer.DTOs.Responses
 {
-    public class MyRankResponse
+    public class GameRatingResponse
     {
-        public int Rank { get; set; }
+        public int PlayerId { get; set; }
+
         public string PlayerName { get; set; } = string.Empty;
-        public int TimeMs { get; set; }
-        public int TotalPlayers { get; set; }
+
         public int Rating { get; set; }
+
+        public int Rank { get; set; }
     }
 }

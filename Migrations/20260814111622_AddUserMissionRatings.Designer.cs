@@ -3,6 +3,7 @@ using System;
 using MarbleServer.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MarbleServer.Migrations
 {
     [DbContext(typeof(MarbleDbContext))]
-    partial class MarbleDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260814111622_AddUserMissionRatings")]
+    partial class AddUserMissionRatings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.18");
@@ -21,9 +24,6 @@ namespace MarbleServer.Migrations
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("AchievementRating")
                         .HasColumnType("INTEGER");
 
                     b.Property<DateTime>("CreatedAt")

@@ -7,6 +7,7 @@ namespace MarbleServer.DTOs.Requests
         [Required]
         [StringLength(100)]
         public string Level { get; set; } = string.Empty;
+        public string LevelName { get; set; } = string.Empty;
 
         [Range(1, int.MaxValue)]
         public int TimeMs { get; set; }

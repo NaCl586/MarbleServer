@@ -11,12 +11,20 @@ namespace MarbleServer.Data
         {
         }
 
-        public DbSet<Player> Players => Set<Player>();
-        public DbSet<Score> Scores => Set<Score>();
-        public DbSet<Replay> Replays => Set<Replay>();
+        public DbSet<Player> Players =>
+            Set<Player>();
+
+        public DbSet<Score> Scores =>
+            Set<Score>();
+
+        public DbSet<Replay> Replays =>
+            Set<Replay>();
+
+        public DbSet<UserMissionRating> UserMissionRatings =>
+            Set<UserMissionRating>();
 
         protected override void OnModelCreating(
-        ModelBuilder modelBuilder)
+            ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
@@ -33,6 +41,20 @@ namespace MarbleServer.Data
                 .WithOne(r => r.Score)
                 .HasForeignKey<Replay>(
                     r => r.ScoreId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<UserMissionRating>()
+                .HasIndex(r => new
+                {
+                    r.PlayerId,
+                    r.MissionId
+                })
+                .IsUnique();
+
+            modelBuilder.Entity<UserMissionRating>()
+                .HasOne(r => r.Player)
+                .WithMany()
+                .HasForeignKey(r => r.PlayerId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

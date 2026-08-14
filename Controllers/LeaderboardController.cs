@@ -14,8 +14,13 @@ namespace MarbleServer.Controllers
         public LeaderboardController(
             LeaderboardService leaderboardService)
         {
-            _leaderboardService = leaderboardService;
+            _leaderboardService =
+                leaderboardService;
         }
+
+        // =====================================================
+        // LEADERBOARD
+        // =====================================================
 
         [HttpGet]
         public async Task<IActionResult> Get(
@@ -24,15 +29,20 @@ namespace MarbleServer.Controllers
             [FromQuery] int pageSize = 10)
         {
             LeaderboardResponse leaderboard =
-                await _leaderboardService.GetLeaderboardAsync(
-                    level,
-                    page,
-                    pageSize);
+                await _leaderboardService
+                    .GetLeaderboardAsync(
+                        level,
+                        page,
+                        pageSize);
 
             return Ok(
                 ApiResponse<LeaderboardResponse>
                     .Success(leaderboard));
         }
+
+        // =====================================================
+        // MY RANK
+        // =====================================================
 
         [Authorize]
         [HttpGet("my-rank")]
@@ -40,9 +50,10 @@ namespace MarbleServer.Controllers
             [FromQuery] string level)
         {
             MyRankResponse? rank =
-                await _leaderboardService.GetMyRankAsync(
-                    PlayerId,
-                    level);
+                await _leaderboardService
+                    .GetMyRankAsync(
+                        PlayerId,
+                        level);
 
             if (rank == null)
                 return NotFound();
@@ -50,6 +61,25 @@ namespace MarbleServer.Controllers
             return Ok(
                 ApiResponse<MyRankResponse>
                     .Success(rank));
+        }
+
+        // =====================================================
+        // ALL LEVEL RECORDS
+        // =====================================================
+
+        [Authorize]
+        [HttpGet("records")]
+        public async Task<IActionResult>
+            GetAllLevelRecords()
+        {
+            List<LevelRecordResponse> result =
+                await _leaderboardService
+                    .GetAllLevelRecordsAsync(
+                        PlayerId);
+
+            return Ok(
+                ApiResponse<List<LevelRecordResponse>>
+                    .Success(result));
         }
     }
 }

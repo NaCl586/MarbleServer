@@ -25,7 +25,8 @@ namespace MarbleServer.Services
                         Username = username,
                         Message = message,
                         Status = status ?? string.Empty,
-                        IsSystem = false
+                        IsSystem = false,
+                        Type = "Normal"
                     });
 
                 TrimHistory();
@@ -36,6 +37,28 @@ namespace MarbleServer.Services
         }
 
         public void AddSystemMessage(
+    string message)
+        {
+            lock (_lock)
+            {
+                _messages.Enqueue(
+                    new ChatMessage
+                    {
+                        Username = string.Empty,
+                        Message = message,
+                        Status = string.Empty,
+                        IsSystem = true,
+                        Type = "System"
+                    });
+
+                TrimHistory();
+            }
+
+            Console.WriteLine(
+                $"Chat history: {_messages.Count} messages stored.");
+        }
+
+        public void AddWorldRecordMessage(
             string message)
         {
             lock (_lock)
@@ -46,7 +69,8 @@ namespace MarbleServer.Services
                         Username = string.Empty,
                         Message = message,
                         Status = string.Empty,
-                        IsSystem = true
+                        IsSystem = true,
+                        Type = "WorldRecord"
                     });
 
                 TrimHistory();
@@ -75,15 +99,10 @@ namespace MarbleServer.Services
 
     public class ChatMessage
     {
-        public string Username { get; set; } =
-            string.Empty;
-
-        public string Message { get; set; } =
-            string.Empty;
-
-        public string Status { get; set; } =
-            string.Empty;
-
+        public string Username { get; set; } = string.Empty;
+        public string Message { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
         public bool IsSystem { get; set; }
+        public string Type { get; set; } = "Normal";
     }
 }

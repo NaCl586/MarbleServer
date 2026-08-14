@@ -6,5 +6,6 @@
         public bool IsNewPersonalBest { get; set; }
         public int TimeMs { get; set; }
         public bool IsWorldRecord { get; set; }
+        public int Rating { get; set; }
     }
 }

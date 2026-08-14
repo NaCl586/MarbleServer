@@ -6,6 +6,7 @@
         public string Username { get; set; }
         public string PasswordHash { get; set; }
         public DateTime CreatedAt { get; set; }
+        public int AchievementRating { get; set; }
         public ICollection<Score> Scores { get; set; } = new List<Score>();
     }
 }

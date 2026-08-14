@@ -1,6 +1,7 @@
 ﻿using MarbleServer.Data;
 using MarbleServer.DTOs.Responses;
 using MarbleServer.Models;
+using MarbleServer.Models.Leaderboard;
 using Microsoft.EntityFrameworkCore;
 
 namespace MarbleServer.Services
@@ -8,12 +9,22 @@ namespace MarbleServer.Services
     public class LeaderboardService
     {
         private readonly MarbleDbContext _db;
+        private readonly RatingReferenceData _referenceData;
+        private readonly RatingService _ratingService;
 
         public LeaderboardService(
-            MarbleDbContext db)
+            MarbleDbContext db,
+            RatingReferenceData referenceData,
+            RatingService ratingService)
         {
             _db = db;
+            _referenceData = referenceData;
+            _ratingService = ratingService;
         }
+
+        // =========================================================
+        // LEADERBOARD
+        // =========================================================
 
         public async Task<LeaderboardResponse> GetLeaderboardAsync(
             string level,
@@ -58,10 +69,16 @@ namespace MarbleServer.Services
                 Score score =
                     scores[i];
 
+                int rating =
+                    _ratingService.CalculateRating(
+                        score.Level,
+                        score.TimeMs);
+
                 result.Add(
                     new ScoreResponse
                     {
-                        ScoreId = score.Id,
+                        ScoreId =
+                            score.Id,
 
                         Rank =
                             skip + i + 1,
@@ -70,23 +87,39 @@ namespace MarbleServer.Services
                             score.Player.Username,
 
                         TimeMs =
-                            score.TimeMs
+                            score.TimeMs,
+
+                        Rating =
+                            rating
                     });
             }
 
             return new LeaderboardResponse
             {
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = totalCount,
-                TotalPages = totalPages,
-                Scores = result
+                Page =
+                    page,
+
+                PageSize =
+                    pageSize,
+
+                TotalCount =
+                    totalCount,
+
+                TotalPages =
+                    totalPages,
+
+                Scores =
+                    result
             };
         }
 
+        // =========================================================
+        // MY RANK
+        // =========================================================
+
         public async Task<MyRankResponse?> GetMyRankAsync(
-    int playerId,
-    string level)
+            int playerId,
+            string level)
         {
             Console.WriteLine(
                 $"GetMyRankAsync: PlayerId={playerId}, " +
@@ -153,11 +186,182 @@ namespace MarbleServer.Services
 
             return new MyRankResponse
             {
-                Rank = index + 1,
-                PlayerName = playerScore.Player.Username,
-                TimeMs = playerScore.TimeMs,
-                TotalPlayers = scores.Count
+                Rank =
+                    index + 1,
+
+                PlayerName =
+                    playerScore.Player.Username,
+
+                TimeMs =
+                    playerScore.TimeMs,
+
+                TotalPlayers =
+                    scores.Count
             };
+        }
+
+        // =========================================================
+        // ALL LEVEL RECORDS
+        //
+        // Used by the online level-select screen.
+        //
+        // Returns the player's personal record and the current
+        // global record for every level in Scores.
+        // =========================================================
+
+        public async Task<List<LevelRecordResponse>>
+            GetAllLevelRecordsAsync(
+                int playerId)
+        {
+            // -----------------------------------------------------
+            // Load all scores once.
+            // -----------------------------------------------------
+
+            List<Score> scores =
+                await _db.Scores
+                    .AsNoTracking()
+                    .Include(s => s.Player)
+                    .OrderBy(s => s.Level)
+                    .ThenBy(s => s.TimeMs)
+                    .ToListAsync();
+
+            // -----------------------------------------------------
+            // Load all stored mission ratings once.
+            // -----------------------------------------------------
+
+            List<UserMissionRating> ratings =
+                await _db.UserMissionRatings
+                    .AsNoTracking()
+                    .ToListAsync();
+
+            // -----------------------------------------------------
+            // Build a fast lookup:
+            //
+            // (PlayerId, MissionId) -> Rating
+            // -----------------------------------------------------
+
+            Dictionary<
+                (int PlayerId, int MissionId),
+                int>
+                ratingLookup =
+                    ratings.ToDictionary(
+                        r => (
+                            r.PlayerId,
+                            r.MissionId),
+                        r => r.Rating);
+
+            List<LevelRecordResponse> result =
+                new();
+
+            // -----------------------------------------------------
+            // Process each level.
+            // -----------------------------------------------------
+
+            foreach (IGrouping<string, Score> levelScores
+                in scores.GroupBy(s => s.Level))
+            {
+                // -------------------------------------------------
+                // Global record
+                // -------------------------------------------------
+
+                Score globalScore =
+                    levelScores
+                        .OrderBy(s => s.TimeMs)
+                        .First();
+
+                // -------------------------------------------------
+                // Personal record
+                // -------------------------------------------------
+
+                Score? personalScore =
+                    levelScores
+                        .FirstOrDefault(
+                            s =>
+                                s.PlayerId ==
+                                playerId);
+
+                // -------------------------------------------------
+                // Global rating
+                // -------------------------------------------------
+
+                int? globalRating =
+                    null;
+
+                if (_referenceData.TryGetMission(
+                        globalScore.Level,
+                        out RatingMissionData? missionData) &&
+                    missionData != null)
+                {
+                    if (ratingLookup.TryGetValue(
+                            (
+                                globalScore.PlayerId,
+                                missionData.Mission.Id),
+                            out int rating))
+                    {
+                        globalRating =
+                            rating;
+                    }
+                }
+
+                // -------------------------------------------------
+                // Personal rating
+                // -------------------------------------------------
+
+                int? personalRating =
+                    null;
+
+                if (personalScore != null &&
+                    _referenceData.TryGetMission(
+                        personalScore.Level,
+                        out RatingMissionData?
+                            personalMissionData) &&
+                    personalMissionData != null)
+                {
+                    if (ratingLookup.TryGetValue(
+                            (
+                                personalScore.PlayerId,
+                                personalMissionData.Mission.Id),
+                            out int rating))
+                    {
+                        personalRating =
+                            rating;
+                    }
+                }
+
+                // -------------------------------------------------
+                // Result
+                // -------------------------------------------------
+
+                result.Add(
+                    new LevelRecordResponse
+                    {
+                        Level =
+                            levelScores.Key,
+
+                        HasPersonalRecord =
+                            personalScore != null,
+
+                        PersonalTimeMs =
+                            personalScore?.TimeMs,
+
+                        PersonalRating =
+                            personalRating,
+
+                        HasGlobalRecord =
+                            true,
+
+                        GlobalPlayerName =
+                            globalScore.Player.Username,
+
+                        GlobalTimeMs =
+                            globalScore.TimeMs,
+
+                        GlobalRating =
+                            globalRating
+                    });
+            }
+
+            return result;
         }
     }
 }
