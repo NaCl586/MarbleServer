@@ -8,6 +8,7 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,22 @@ builder.Services.AddControllers();
 // =========================================================
 // Swagger
 // =========================================================
+
+// Read the setting from appsettings.json directly in Program.cs
+var maxFileSizeMB = builder.Configuration.GetValue<long>("ReplayStorage:MaxFileSizeMB", 50);
+var maxSizeBytes = maxFileSizeMB * 1024L * 1024L;
+
+// 1. Tell Kestrel (the server) to allow 50 MB
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.Limits.MaxRequestBodySize = maxSizeBytes;
+});
+
+// 2. Tell ASP.NET Form Reader to parse up to 50 MB
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = maxSizeBytes;
+});
 
 builder.Services.AddEndpointsApiExplorer();
 
